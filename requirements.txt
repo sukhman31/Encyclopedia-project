@@ -4,3 +4,4 @@ deeplake
 bs4
 huggingface_hub
 streamlit
+tiktoken
