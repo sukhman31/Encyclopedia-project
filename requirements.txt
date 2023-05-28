@@ -1,3 +1,5 @@
 openai
 langchain
 deeplake
+bs4
+PIL
