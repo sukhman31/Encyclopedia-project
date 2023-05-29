@@ -70,7 +70,7 @@ with st.form('input'):
             context += "\n"
 
         template="""Your only source of knowledge is the following context. Please use only the following context to provide a suitable answer. You have to underline the proper nouns, important words, names of places, art references in the answer and return the
-            answer in markdown. The answer can only be in markdown.  For the underlined words, add hyperlink in the format : 'https://www.britannica.com/search?query=word'. You have to identify
+            answer in markdown. The answer can only be in markdown.  For the underlined words, it is necessary to add hyperlink in the format : 'https://www.britannica.com/search?query=word'. You have to identify
             atlease three such words or phrases and you have to prove the hyperlink, otherwise the output won't be good.
             Context: {context}
             Question: {question}
