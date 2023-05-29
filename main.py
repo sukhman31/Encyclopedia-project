@@ -12,6 +12,12 @@ from langchain.vectorstores import DeepLake
 import requests
 import io
 from PIL import Image
+import openai
+import numpy as np
+from numpy.linalg import norm
+
+def cosine_similarity(a, b):
+    return np.dot(a, b)/(norm(a)*norm(b))
 
 with st.form('input'):
     question = st.text_input('Enter your question')
@@ -56,15 +62,16 @@ with st.form('input'):
         embeddings = OpenAIEmbeddings()
         db = DeepLake.from_documents(texts, embeddings)
 
-        ans = db.similarity_search(question,k=2)
+        ans = db.similarity_search(question,k=5)
 
         context = ""
         for i in range(2):
             context += ans[i].page_content
             context += "\n"
 
-        template="""Your only source of knowledge is the following context. Please use only the following context to provide a suitable answer. You have to underline the proper nouns in the answer and return the
-            answer in markdown. The answer can only be in markdown.  For the underlined words, add hyperlink in the format : 'https://www.britannica.com/search?query=word'
+        template="""Your only source of knowledge is the following context. Please use only the following context to provide a suitable answer. You have to underline the proper nouns, important words, names of places, art references in the answer and return the
+            answer in markdown. The answer can only be in markdown.  For the underlined words, add hyperlink in the format : 'https://www.britannica.com/search?query=word'. You have to identify
+            atlease three such words or phrases and you have to prove the hyperlink, otherwise the output won't be good.
             Context: {context}
             Question: {question}
             """
@@ -72,18 +79,28 @@ with st.form('input'):
         prompt = PromptTemplate(template=template, input_variables=["context","question"])
         llm_chain = LLMChain(prompt=prompt, llm=llm)
 
-
-        API_URL = "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"
-        headers = {"Authorization": f"Bearer {os.environ['BEARER_TOKEN']}"}
-
-        def query(payload):
-            response = requests.post(API_URL, headers=headers, json=payload)
-            return response.content
-        image_bytes = query({
-            "inputs": topic,
-        })
-
-        image = Image.open(io.BytesIO(image_bytes))
+        response = openai.Embedding.create(
+            input=question,
+            model="text-embedding-ada-002"
+            )
+        embedding = response['data'][0]['embedding']
+        images = data_page.find_all("img")
+        maxi = 0
+        right_image = None
+        for img in images:
+            try:
+                text = img['alt']
+                response = openai.Embedding.create(
+                    input=text,
+                    model="text-embedding-ada-002"
+                )
+                text_embedding = response['data'][0]['embedding']
+                if cosine_similarity(embedding,text_embedding) > maxi:
+                    right_image = img
+                    maxi = cosine_similarity(embedding,text_embedding)
+            except:
+                continue
 
         st.markdown(llm_chain.predict(context = context, question = question))
-        st.image(image)
+        if right_image != None:
+            st.markdown(str(right_image), unsafe_allow_html=True)
